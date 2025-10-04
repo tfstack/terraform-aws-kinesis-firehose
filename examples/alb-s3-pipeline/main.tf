@@ -407,7 +407,7 @@ resource "aws_wafv2_web_acl_association" "main" {
 module "kinesis_firehose" {
   source = "../../"
 
-  name        = "${local.base_name}-waf-logs"
+  name        = "aws-waf-logs-${local.base_name}-alb-s3"
   destination = "extended_s3"
 
   s3_configuration = {

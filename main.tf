@@ -1,5 +1,74 @@
 # Data sources removed for testing - they require AWS API calls
 
+# IAM Role for Firehose CloudWatch Logs (optional)
+resource "aws_iam_role" "firehose_cloudwatch_logs" {
+  count = var.create_cloudwatch_log_group ? 1 : 0
+
+  name = "${var.name}-cloudwatch-logs"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "firehose.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+# IAM Policy for Firehose CloudWatch Logs permissions
+resource "aws_iam_role_policy" "firehose_cloudwatch_logs" {
+  count = var.create_cloudwatch_log_group ? 1 : 0
+
+  name = "${var.name}-cloudwatch-logs"
+  role = aws_iam_role.firehose_cloudwatch_logs[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams"
+        ]
+        Resource = var.cloudwatch_log_group_force_destroy ? "${aws_cloudwatch_log_group.this_force_destroy[0].arn}:*" : "${aws_cloudwatch_log_group.this_protected[0].arn}:*"
+      }
+    ]
+  })
+}
+
+# CloudWatch Log Group (optional) - Force Destroy Enabled
+resource "aws_cloudwatch_log_group" "this_force_destroy" {
+  count = var.create_cloudwatch_log_group && var.cloudwatch_log_group_force_destroy ? 1 : 0
+
+  name              = var.cloudwatch_log_group_name != null ? var.cloudwatch_log_group_name : "/aws/kinesisfirehose/${var.name}"
+  retention_in_days = var.cloudwatch_log_group_retention_days
+  tags              = var.tags
+}
+
+# CloudWatch Log Group (optional) - Force Destroy Disabled
+resource "aws_cloudwatch_log_group" "this_protected" {
+  count = var.create_cloudwatch_log_group && !var.cloudwatch_log_group_force_destroy ? 1 : 0
+
+  name              = var.cloudwatch_log_group_name != null ? var.cloudwatch_log_group_name : "/aws/kinesisfirehose/${var.name}"
+  retention_in_days = var.cloudwatch_log_group_retention_days
+  tags              = var.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 # Kinesis Firehose Delivery Stream
 resource "aws_kinesis_firehose_delivery_stream" "this" {
   name        = var.name
@@ -31,7 +100,11 @@ resource "aws_kinesis_firehose_delivery_stream" "this" {
 
       # CloudWatch logging
       dynamic "cloudwatch_logging_options" {
-        for_each = extended_s3_configuration.value.cloudwatch_logging_options != null ? [extended_s3_configuration.value.cloudwatch_logging_options] : []
+        for_each = var.create_cloudwatch_log_group ? [{
+          enabled         = true
+          log_group_name  = var.cloudwatch_log_group_force_destroy ? aws_cloudwatch_log_group.this_force_destroy[0].name : aws_cloudwatch_log_group.this_protected[0].name
+          log_stream_name = var.cloudwatch_log_stream_name != null ? var.cloudwatch_log_stream_name : var.name
+        }] : (extended_s3_configuration.value.cloudwatch_logging_options != null ? [extended_s3_configuration.value.cloudwatch_logging_options] : [])
         content {
           enabled         = cloudwatch_logging_options.value.enabled
           log_group_name  = cloudwatch_logging_options.value.log_group_name
