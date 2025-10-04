@@ -311,6 +311,36 @@ variable "splunk_configuration" {
   default = null
 }
 
+variable "create_cloudwatch_log_group" {
+  description = "Whether to create a CloudWatch log group for the delivery stream. When true, cloudwatch_logging_options in s3_configuration will be automatically configured."
+  type        = bool
+  default     = false
+}
+
+variable "cloudwatch_log_group_name" {
+  description = "Name for the CloudWatch log group. Only used when create_cloudwatch_log_group is true. If not provided, defaults to /aws/kinesisfirehose/{name}."
+  type        = string
+  default     = null
+}
+
+variable "cloudwatch_log_stream_name" {
+  description = "Name for the CloudWatch log stream. Only used when create_cloudwatch_log_group is true. If not provided, defaults to {name}."
+  type        = string
+  default     = null
+}
+
+variable "cloudwatch_log_group_retention_days" {
+  description = "Number of days to retain CloudWatch logs. Only used when create_cloudwatch_log_group is true."
+  type        = number
+  default     = 14
+}
+
+variable "cloudwatch_log_group_force_destroy" {
+  description = "Whether to force destroy the CloudWatch log group. Only used when create_cloudwatch_log_group is true."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "A map of tags to assign to the resource."
   type        = map(string)

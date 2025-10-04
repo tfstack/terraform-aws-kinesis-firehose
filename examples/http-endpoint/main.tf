@@ -247,7 +247,7 @@ resource "aws_lambda_permission" "allow_firehose" {
 module "kinesis_firehose" {
   source = "../../"
 
-  name        = "${local.base_name}-stream"
+  name        = "aws-waf-logs-${local.base_name}-stream"
   destination = "http_endpoint"
 
   http_endpoint_configuration = {
@@ -301,4 +301,7 @@ module "kinesis_firehose" {
       ]
     }
   }
+
+  create_cloudwatch_log_group        = true
+  cloudwatch_log_group_force_destroy = true
 }

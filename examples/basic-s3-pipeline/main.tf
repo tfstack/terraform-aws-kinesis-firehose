@@ -516,7 +516,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 module "kinesis_firehose" {
   source = "../../"
 
-  name        = "firehose-delivery-stream"
+  name        = "aws-waf-logs-${local.base_name}-basic-s3"
   destination = "extended_s3"
 
   s3_configuration = {
