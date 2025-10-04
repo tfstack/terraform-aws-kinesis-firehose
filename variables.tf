@@ -1,6 +1,11 @@
 variable "name" {
-  description = "A name to identify the stream. This is unique to the AWS account and region the stream is created in."
+  description = "A name to identify the stream. This is unique to the AWS account and region the stream is created in. For WAF logging, must start with 'aws-waf-logs-' prefix."
   type        = string
+
+  validation {
+    condition     = can(regex("^aws-waf-logs-", var.name))
+    error_message = "For WAF logging to Kinesis Data Firehose, the delivery stream name must start with 'aws-waf-logs-' prefix. Example: 'aws-waf-logs-${var.name}'"
+  }
 }
 
 variable "destination" {
